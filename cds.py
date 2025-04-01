@@ -6,13 +6,14 @@ from scipy.optimize import fsolve
 
 def cds_pricer(recovery_rate, rf_rate, tenor, coupon, upfront, credit_spread):
     """
-    Calculate the par spread and present value of a CDS. The methodology for pricing CDS involves calculating the
-    present value of the protection leg and the premium leg. The par spread is the credit spread that makes the present
-    value of the CDS equal to zero.
+    Calculate the par spread and present value of a CDS, as well as the PVs of the protection and premium legs.
+    To price a CDS (buy protection), we subtract the PV of the premium leg and the upfront payment from the PV
+    of the protection leg.
+    The par spread is the credit spread that makes the present value of the CDS equal to zero.
 
     CDS can be priced using various models. The main types of models are reduced-form models and structural models,
     which directly model the default process of the underlying entity, or market-driven approaches which infer credit
-    spreads from observed market data rather than directly modeling the default process.
+    spreads from observed market data rather than modeling the default process.
 
     Examples of reduced form models include the Jarrow-Turnbull model (single factor hazard rate), the Duffie-Singleton
     model (stochastic intensity), and extensions of these such as models including a jump-to-default component.
@@ -48,8 +49,9 @@ def cds_pricer(recovery_rate, rf_rate, tenor, coupon, upfront, credit_spread):
 
     Returns
     -------
-    (float, float)
-        The par spread and present value of the CDS.
+    dict
+        Dictionary with: Par spread, present value of the CDS, protection leg PV,
+        premium leg PV
     """
     # Calculate the (constant) hazard rate
     hazard_rate = credit_spread / (1 - recovery_rate)
@@ -70,16 +72,22 @@ def cds_pricer(recovery_rate, rf_rate, tenor, coupon, upfront, credit_spread):
     # Calculate the present value of the CDS
     cds_pv = protection_leg_pv - premium_leg_pv - upfront
 
-    return par_spread, cds_pv
+    # Encapsulate results in a dict
+    dct_out = {'par_spread': par_spread,
+               'cds_pv': cds_pv,
+               'protection_leg_pv': protection_leg_pv,
+               'premium_leg_pv': premium_leg_pv}
+
+    return dct_out
 
 
-def plot_par_spread_vs_recovery_rate(rf_rate, tenor, coupon, upfront, credit_spread):
-    recovery_rates = np.linspace(0.01, 0.99, 100)  # Recovery rates from 1% to 99%
+def plot_par_spread_vs_recovery_rate(rf_rate, tenor, coupon, upfront):
+    recovery_rates = np.linspace(0.0, 0.95, 100)  # Recovery rates from 0% to 95%
     par_spreads = np.array([])  # Initialize an empty array to store par spreads
 
     for recovery_rate in recovery_rates:
-        par_spread, _ = cds_pricer(
-            recovery_rate, rf_rate, tenor, coupon, upfront, credit_spread)
+        # In this prototype, the credit spread = the par spread, so re-use the solver
+        par_spread = strip_credit_spread(recovery_rate, rf_rate, tenor, coupon, upfront)
         par_spreads = np.append(par_spreads, par_spread)  # Append the calculated par spread to the array
 
     plt.figure(figsize=(10, 6))
@@ -127,7 +135,7 @@ def strip_credit_spread(recovery_rate, rf_rate, tenor, coupon, upfront, x0=0.01)
         The fitted credit spread.
     """
     def objective(credit_spread):
-        return cds_pricer(recovery_rate, rf_rate, tenor, coupon, upfront, credit_spread)[1]
+        return cds_pricer(recovery_rate, rf_rate, tenor, coupon, upfront, credit_spread)['cds_pv']
 
     fitted_credit_spread = fsolve(objective, np.array(x0))[0]
     return fitted_credit_spread
