@@ -64,6 +64,7 @@ def cds_pricer(recovery_rate, rf_rate, tenor, coupon, upfront, credit_spread):
     premium_leg_pv = coupon * annuity_factor
 
     # Calculate the par spread
+    # Note: In this model, par_spread always equals credit_spread
     par_spread = protection_leg_pv / annuity_factor
 
     # Calculate the present value of the CDS
@@ -97,9 +98,13 @@ def strip_credit_spread(recovery_rate, rf_rate, tenor, coupon, upfront, x0=0.01)
     equal to zero. This prototype finds a single constant credit spread given a single CDS contract.
 
     To strip a credit curve from multiple CDS contracts, one would solve for the hazard rate iteratively, starting
-    from the shortest maturity and working outward. The hazard rate process could be piecewise-constant or follow a
-    parametric form such as a Nelson-Siegel or cubic spline curve. A more sophisticated approach would involve
-    stochastic modeling of the hazard rate process, such as a Cox-Ingersoll-Ross (CIR) model.
+    from the shortest maturity and working outward. This assumes the hazard rate is piecewise-constant.
+    Alternatively, one could assume a parametric form such as a Nelson-Siegel curve. Then would apply optimization
+    methods to minimize squared pricing errors.
+    If one assumes a cubic spline curve, then would would solve a set of simultaneous equations for the 
+    parameters of the spline.
+    A more sophisticated approach would involve stochastic modeling of the hazard rate process, such as a 
+    Cox-Ingersoll-Ross (CIR) model.
 
     Parameters
     ----------
@@ -143,8 +148,8 @@ def main():
     pricer_parser.add_argument("--upfront", type=float, help="Upfront payment", default=0.0)
     pricer_parser.add_argument("--credit_spread", type=float, help="Credit spread", default=0.01)
 
-    # Credit Curve Stripper
-    stripper_parser = subparsers.add_parser("s", help="Credit Curve Stripper")
+    # Credit Spread Stripper
+    stripper_parser = subparsers.add_parser("s", help="Credit Spread Stripper")
     stripper_parser.add_argument("--recovery_rate", type=float, help="Recovery rate", default=0.4)
     stripper_parser.add_argument("--rf_rate", type=float, help="Constant risk-free rate", default=0.04)
     stripper_parser.add_argument("--tenor", type=float, help="Time to maturity (in years)", default=5)
@@ -175,6 +180,9 @@ def main():
         fitted_credit_spread = strip_credit_spread(
             args.recovery_rate, args.rf_rate, args.tenor, args.coupon, args.upfront)
         print(f"Fitted Credit Spread: {10000 * fitted_credit_spread:.0f} bp")
+    
+    else:
+        raise ValueError(f"Invalid command: {args.command}")
 
 
 if __name__ == "__main__":
