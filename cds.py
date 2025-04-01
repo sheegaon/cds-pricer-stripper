@@ -55,11 +55,11 @@ def cds_pricer(recovery_rate, rf_rate, tenor, coupon, upfront, credit_spread):
     hazard_rate = credit_spread / (1 - recovery_rate)
 
     # Calculate the present value of the protection leg
-    protection_leg_pv = ((1 - recovery_rate) * (1 - np.exp(-hazard_rate * tenor)) *
-                         np.exp(-rf_rate * tenor))
+    risky_discount_rate = rf_rate + hazard_rate
+    protection_leg_pv = ((1 - recovery_rate) * (hazard_rate / risky_discount_rate) * 
+                         (1 - np.exp(-risky_discount_rate * tenor)))
 
     # Calculate the present value of the premium leg
-    risky_discount_rate = rf_rate + hazard_rate
     annuity_factor = (1 - np.exp(-risky_discount_rate * tenor)) / risky_discount_rate
     premium_leg_pv = coupon * annuity_factor
 
