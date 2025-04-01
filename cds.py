@@ -58,7 +58,7 @@ def cds_pricer(recovery_rate, rf_rate, tenor, coupon, upfront, credit_spread):
 
     # Calculate the present value of the protection leg
     risky_discount_rate = rf_rate + hazard_rate
-    protection_leg_pv = ((1 - recovery_rate) * (hazard_rate / risky_discount_rate) * 
+    protection_leg_pv = ((1 - recovery_rate) * (hazard_rate / risky_discount_rate) *
                          (1 - np.exp(-risky_discount_rate * tenor)))
 
     # Calculate the present value of the premium leg
@@ -171,14 +171,19 @@ def main():
               f"tenor={args.tenor}, coupon={args.coupon}, "
               f"upfront={args.upfront}, credit_spread={args.credit_spread}")
         # Call the function to price CDS
-        par_spread, cds_pv = cds_pricer(args.recovery_rate, args.rf_rate, args.tenor, args.coupon,
-                                        args.upfront, args.credit_spread)
+        dct_out = cds_pricer(args.recovery_rate, args.rf_rate, args.tenor, args.coupon, args.upfront,
+                             args.credit_spread)
+        par_spread = dct_out['par_spread']
+        cds_pv = dct_out['cds_pv']
+        protection_leg_pv = dct_out['protection_leg_pv']
+        premium_leg_pv = dct_out['premium_leg_pv']
         print(f"Par Spread: {par_spread:.4f}")
         print(f"Present Value of CDS: {cds_pv:.4f}")
+        print(f"Present Value of Protection Leg: {protection_leg_pv:.4f}")
+        print(f"Present Value of Premium Leg: {premium_leg_pv:.4f}")
         # Plotting the Par Spread vs Recovery Rate
         plot_par_spread_vs_recovery_rate(
-            rf_rate=args.rf_rate, tenor=args.tenor, coupon=args.coupon, upfront=args.upfront,
-            credit_spread=args.credit_spread)
+            rf_rate=args.rf_rate, tenor=args.tenor, coupon=args.coupon, upfront=args.upfront)
 
     elif args.command == "s":
         print(f"Running Credit Spread Stripper with: recovery_rate={args.recovery_rate}, "
